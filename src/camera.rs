@@ -15,9 +15,9 @@ pub struct Camera {
 impl Camera {
     pub fn build(ar: f32, fov: f32) -> Self {
         Self {
-            fvec: -glam::Vec3A::Z,
+            fvec: glam::Vec3A::Z,
             rvec: glam::Vec3A::X,
-            uvec: glam::Vec3A::Y,
+            uvec: -glam::Vec3A::Y,
             asp_ratio: ar,
             fov,
             ..Default::default()
@@ -67,6 +67,12 @@ pub fn minifb_input_cb(window: &minifb::Window, camera: &mut Camera) {
     }
     if window.is_key_down(Key::Right) {
         rotation.y -= 1.0;
+    }
+    if window.is_key_down(Key::Q) {
+        rotation.z += 1.0;
+    }
+    if window.is_key_down(Key::E) {
+        rotation.z -= 1.0;
     }
     if window.is_key_down(Key::W) {
         translation.z += 1.0;

@@ -21,6 +21,7 @@ impl<const N: usize, T> Buffer<T, N> {
     }
 
     pub fn linearize(&self, indices: [usize; N]) -> usize {
+        debug_assert!(self.surrounds(indices));
         let mut index = 0;
         let mut stride = 1;
         (0..N).for_each(|idx| {
