@@ -29,6 +29,16 @@ impl<const N: usize, T> Buffer<T, N> {
         });
         index
     }
+
+    #[allow(clippy::needless_range_loop)]
+    pub fn surrounds(&self, indices: [usize; N]) -> bool {
+        for i in 0..N {
+            if indices[i] >= self.size[i] {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 impl<const N: usize, T> Index<usize> for Buffer<T, N> {

@@ -24,21 +24,22 @@ impl Camera {
         }
     }
 
-    pub fn update_rotation(&mut self, rot: glam::Vec3A) {
-        let updated = glam::Mat3A::from_rotation_z(rot.z * -self.look_speed)
-            .mul_mat3(&glam::Mat3A::from_rotation_y(rot.y * -self.look_speed))
-            .mul_mat3(&glam::Mat3A::from_rotation_x(rot.x * -self.look_speed))
+    pub fn update_rotation(&mut self, rotation: glam::Vec3A) {
+        let omega = self.rvec * rotation.x + self.uvec * rotation.y + self.fvec * rotation.z;
+        let updated = glam::Mat3A::from_rotation_z(omega.z * -self.look_speed)
+            .mul_mat3(&glam::Mat3A::from_rotation_y(omega.y * -self.look_speed))
+            .mul_mat3(&glam::Mat3A::from_rotation_x(omega.x * -self.look_speed))
             .mul_mat3(&glam::Mat3A::from_cols(self.rvec, self.uvec, self.fvec));
-        self.fvec = updated.z_axis;
-        self.uvec = updated.y_axis;
-        self.rvec = updated.x_axis;
+        self.fvec = updated.z_axis.normalize();
+        self.uvec = updated.y_axis.normalize();
+        self.rvec = updated.x_axis.normalize();
     }
 
     pub fn update_position(&mut self, translation: glam::Vec3A) {
         let translation = translation.normalize_or_zero();
-        self.pos -= self.fvec * translation.z * -self.move_speed;
-        self.pos += self.uvec * translation.y * -self.move_speed;
-        self.pos += self.rvec * translation.x * -self.move_speed;
+        self.pos += self.fvec * translation.z * self.move_speed;
+        self.pos += self.uvec * translation.y * self.move_speed;
+        self.pos += self.rvec * translation.x * self.move_speed;
     }
 }
 
@@ -47,7 +48,7 @@ impl std::fmt::Display for Camera {
         write!(fmt, "f: ({:.2}, {:.2}, {:.2})", self.fvec.x, self.fvec.y, self.fvec.z)?;
         write!(fmt, "r: ({:.2}, {:.2}, {:.2})", self.rvec.x, self.rvec.y, self.rvec.z)?;
         write!(fmt, "u: ({:.2}, {:.2}, {:.2})", self.uvec.x, self.uvec.y, self.uvec.z)?;
-        writeln!(fmt, "{}", self.pos)?;
+        writeln!(fmt, "\n{}", self.pos)?;
         Ok(())
     }
 }
@@ -74,10 +75,16 @@ pub fn minifb_input_cb(window: &minifb::Window, camera: &mut Camera) {
         translation.z -= 1.0;
     }
     if window.is_key_down(Key::A) {
-        translation.x -= 1.0;
+        translation.x += 1.0;
     }
     if window.is_key_down(Key::D) {
-        translation.x += 1.0;
+        translation.x -= 1.0;
+    }
+    if window.is_key_down(Key::LeftShift) {
+        translation.y += 1.0;
+    }
+    if window.is_key_down(Key::Space) {
+        translation.y -= 1.0;
     }
     camera.update_rotation(rotation);
     camera.update_position(translation);
