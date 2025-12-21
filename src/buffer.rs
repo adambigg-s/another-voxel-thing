@@ -20,6 +20,16 @@ impl<const N: usize, T> Buffer<T, N> {
         self.items.iter_mut().for_each(|item| *item = fill);
     }
 
+    pub fn try_set(&mut self, value: T, indices: [usize; N]) -> Result<(), &'static str> {
+        if !self.surrounds(indices) {
+            return Err("out of bounds");
+        }
+
+        let idx = self.linearize(indices);
+        self[idx] = value;
+        Ok(())
+    }
+
     #[inline(always)]
     pub fn linearize(&self, indices: [usize; N]) -> usize {
         debug_assert!(self.surrounds(indices));

@@ -1,97 +1,88 @@
+use std::fmt;
+
+use glam::Vec3Swizzles;
 use minifb::Key;
 
 #[derive(Debug, Default)]
 pub struct Camera {
-    pub pos: glam::Vec3A,
-    pub fvec: glam::Vec3A,
-    pub rvec: glam::Vec3A,
-    pub uvec: glam::Vec3A,
-    pub asp_ratio: f32,
+    pub pitch: f32,
+    pub yaw: f32,
+
+    pub fvec: glam::Vec2,
+    pub rvec: glam::Vec2,
+    pub pos: glam::Vec2,
+
+    pub ar: f32,
     pub fov: f32,
+
     pub look_speed: f32,
     pub move_speed: f32,
 }
 
 impl Camera {
     pub fn build(ar: f32, fov: f32) -> Self {
-        Self {
-            fvec: glam::Vec3A::Z,
-            rvec: glam::Vec3A::X,
-            uvec: -glam::Vec3A::Y,
-            asp_ratio: ar,
-            fov,
-            ..Default::default()
-        }
+        Self { ar, fov, ..Default::default() }
     }
 
-    pub fn update_rotation(&mut self, rotation: glam::Vec3A) {
-        let omega = self.rvec * rotation.x + self.uvec * rotation.y + self.fvec * rotation.z;
-        let updated = glam::Mat3A::from_rotation_z(omega.z * -self.look_speed)
-            .mul_mat3(&glam::Mat3A::from_rotation_y(omega.y * -self.look_speed))
-            .mul_mat3(&glam::Mat3A::from_rotation_x(omega.x * -self.look_speed))
-            .mul_mat3(&glam::Mat3A::from_cols(self.rvec, self.uvec, self.fvec));
-        self.fvec = updated.z_axis.normalize();
-        self.uvec = updated.y_axis.normalize();
-        self.rvec = updated.x_axis.normalize();
+    pub fn update_rotation(&mut self, pitch: f32, yaw: f32) {
+        self.pitch += pitch;
+        self.yaw += yaw;
+
+        self.pitch = self.pitch.clamp(-89.9f32, 89.9f32);
+        self.yaw = self.yaw.rem_euclid(360.0f32);
+
+        self.fvec = glam::Mat2::from_angle(self.yaw.to_radians()) * glam::Vec2::Y;
+        self.rvec = glam::vec3(self.fvec.x, self.fvec.y, 0.0f32).cross(glam::Vec3::Z).xy();
     }
 
-    pub fn update_position(&mut self, translation: glam::Vec3A) {
-        let translation = translation.normalize_or_zero();
-        self.pos += self.fvec * translation.z * self.move_speed;
-        self.pos += self.uvec * translation.y * self.move_speed;
-        self.pos += self.rvec * translation.x * self.move_speed;
+    pub fn update_position(&mut self, movement: glam::Vec2) {
+        self.pos += self.fvec * movement.y;
+        self.pos += self.rvec * movement.x;
+    }
+
+    pub fn display(&self) {
+        print!("{}", self);
     }
 }
 
-impl std::fmt::Display for Camera {
+impl fmt::Display for Camera {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "f: ({:.2}, {:.2}, {:.2})", self.fvec.x, self.fvec.y, self.fvec.z)?;
-        write!(fmt, "r: ({:.2}, {:.2}, {:.2})", self.rvec.x, self.rvec.y, self.rvec.z)?;
-        write!(fmt, "u: ({:.2}, {:.2}, {:.2})", self.uvec.x, self.uvec.y, self.uvec.z)?;
+        write!(fmt, "f: ({:.2}, {:.2})", self.fvec.x, self.fvec.y)?;
+        write!(fmt, "r: ({:.2}, {:.2})", self.rvec.x, self.rvec.y)?;
+        write!(fmt, "pitch: {:.2}, yaw: {:.2}", self.pitch, self.yaw)?;
         writeln!(fmt, "\n{}", self.pos)?;
         Ok(())
     }
 }
 
 pub fn minifb_input_cb(window: &minifb::Window, camera: &mut Camera) {
-    let mut rotation = glam::Vec3A::ZERO;
-    let mut translation = glam::Vec3A::ZERO;
-    if window.is_key_down(Key::Up) {
-        rotation.x += 1.0;
-    }
-    if window.is_key_down(Key::Down) {
-        rotation.x -= 1.0;
-    }
-    if window.is_key_down(Key::Left) {
-        rotation.y += 1.0;
-    }
-    if window.is_key_down(Key::Right) {
-        rotation.y -= 1.0;
-    }
-    if window.is_key_down(Key::Q) {
-        rotation.z += 1.0;
-    }
-    if window.is_key_down(Key::E) {
-        rotation.z -= 1.0;
-    }
+    let mut translation = glam::IVec2::ZERO;
+    let mut yaw = 0;
+    let mut pitch = 0;
     if window.is_key_down(Key::W) {
-        translation.z += 1.0;
+        translation.y += 1;
     }
     if window.is_key_down(Key::S) {
-        translation.z -= 1.0;
-    }
-    if window.is_key_down(Key::A) {
-        translation.x += 1.0;
+        translation.y -= 1;
     }
     if window.is_key_down(Key::D) {
-        translation.x -= 1.0;
+        translation.x += 1;
     }
-    if window.is_key_down(Key::LeftShift) {
-        translation.y += 1.0;
+    if window.is_key_down(Key::A) {
+        translation.x -= 1
     }
-    if window.is_key_down(Key::Space) {
-        translation.y -= 1.0;
+    if window.is_key_down(Key::Right) {
+        yaw -= 1;
     }
-    camera.update_rotation(rotation);
-    camera.update_position(translation);
+    if window.is_key_down(Key::Left) {
+        yaw += 1;
+    }
+    if window.is_key_down(Key::Up) {
+        pitch += 1;
+    }
+    if window.is_key_down(Key::Down) {
+        pitch -= 1;
+    }
+    camera.update_position(translation.as_vec2());
+    camera.update_rotation(pitch as f32, yaw as f32);
 }
