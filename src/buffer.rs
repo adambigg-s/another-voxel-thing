@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-pub struct Buffer<T, const N: usize> {
+pub struct Buffer<T = u32, const N: usize = 2> {
     pub items: Box<[T]>,
     pub size: [usize; N],
 }

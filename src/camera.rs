@@ -12,7 +12,6 @@ pub struct Camera {
     pub rvec: glam::Vec2,
     pub pos: glam::Vec2,
 
-    pub ar: f32,
     pub fov: f32,
 
     pub look_speed: f32,
@@ -20,8 +19,10 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn build(ar: f32, fov: f32) -> Self {
-        Self { ar, fov, ..Default::default() }
+    pub fn build(fov: f32) -> Self {
+        let mut cam = Self { fov, ..Default::default() };
+        cam.update_rotation(Default::default(), Default::default());
+        cam
     }
 
     pub fn update_rotation(&mut self, pitch: f32, yaw: f32) {
